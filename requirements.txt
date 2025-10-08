@@ -1,4 +1,7 @@
-streamlit
-Pillow
-agno
-duckduckgo-search
+streamlit==1.50.0
+pillow==10.3.0
+pytesseract==0.3.13
+pdfplumber==0.11.7
+agno==2.1.1
+google-generativeai== 0.8.5
+tavily-python== 0.7.12
