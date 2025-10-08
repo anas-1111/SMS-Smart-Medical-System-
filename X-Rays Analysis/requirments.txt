@@ -1,0 +1,9 @@
+# ==========================
+# Smart Medical System - Requirements
+# ==========================
+
+streamlit
+Pillow
+agno
+duckduckgo-search
+google-generativeai

@@ -1,0 +1,17 @@
+# ==========================
+# Smart Medical System - Requirements
+# ==========================
+
+streamlit
+Pillow
+pytesseract
+pdfplumber
+agno
+tavily-python
+google-generativeai
+
+# ==========================
+# External Dependencies
+# ==========================
+# Tesseract OCR must be installed separately:
+# Windows: https://github.com/tesseract-ocr/tesseract
