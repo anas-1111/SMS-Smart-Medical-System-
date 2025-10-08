@@ -9,8 +9,7 @@ import streamlit as st
 # ===========================
 # API Key Setup
 # ===========================
-GOOGLE_API_KEY = "AIzaSyCqnC5HjMGRW6QXXY-PharEHZb9uYlAsRM"
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not GOOGLE_API_KEY:
     raise ValueError("Please set your Google API Key in GOOGLE_API_KEY")
