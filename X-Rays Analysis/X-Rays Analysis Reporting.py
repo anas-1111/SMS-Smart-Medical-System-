@@ -11,7 +11,7 @@ import streamlit as st
 # ===========================
 # GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-GOOGLE_API_KEY = "AIzaSyA_5Uzqe5YEqEzZIlH8Ub3yaUtqr-uR2Vo"  
+GOOGLE_API_KEY = "Your_Key"  
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 if not GOOGLE_API_KEY:

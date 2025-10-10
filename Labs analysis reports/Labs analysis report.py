@@ -13,8 +13,8 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tess
 os.environ["TESSDATA_PREFIX"] = r"C:\\Program Files\\Tesseract-OCR\\tessdata"              
 
 # ------------------ API Keys ------------------
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAF41ddLrbz3A_iSxq9WanmswFm8Nep1pU"
-os.environ["TAVILY_API_KEY"] = "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"
+os.environ["GOOGLE_API_KEY"] = "Your_Key"
+os.environ["TAVILY_API_KEY"] = "Your_Key"
 
 # ------------------ Tavily Search Tool ------------------
 web_tool = TavilyTools()
