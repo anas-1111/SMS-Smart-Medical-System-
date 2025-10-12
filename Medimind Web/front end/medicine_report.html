@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Medicine Report - Smart Clinic{% endblock %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-area {
+        border: 2px dashed var(--primary-color);
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: var(--accent-color);
+        background-color: rgba(26, 115, 232, 0.05);
+    }
+
+    .divider {
+        text-align: center;
+        margin: 2rem 0;
+        position: relative;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 45%;
+        height: 1px;
+        background-color: #ddd;
+    }
+
+    .divider::before {
+        left: 0;
+    }
+
+    .divider::after {
+        right: 0;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1rem 0;
+    }
+
+    #resultContainer {
+        margin-top: 2rem;
+        padding: 1rem;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+    }
+
+    /* Medicine Report Specific Styles */
+    .medicine-report {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .medicine-report header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        border-radius: 10px;
+    }
+
+    .medicine-report h1 {
+        color: #1565c0;
+        font-size: 28px;
+        margin: 0;
+    }
+
+    .english-section, .arabic-section {
+        margin: 30px 0;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .section {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 4px solid #2196f3;
+        transition: all 0.3s ease;
+    }
+
+    .section:hover {
+        transform: translateX(5px);
+        border-left-color: #1565c0;
+    }
+
+    .section h3 {
+        color: #1565c0;
+        margin-bottom: 10px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+    }
+
+    .section h3::before {
+        content: "💊";
+        margin-right: 8px;
+    }
+
+    .section p {
+        color: #333;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .warning {
+        color: #d32f2f;
+        text-align: center;
+        padding: 15px;
+        margin-top: 30px;
+        background: #ffebee;
+        border-radius: 6px;
+        border: 1px solid #ffcdd2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+    }
+
+    .warning::before {
+        content: "⚠️";
+        margin-right: 8px;
+        font-size: 20px;
+    }
+
+    .arabic-section {
+        direction: rtl;
+        text-align: right;
+    }
+
+    .arabic-section .section {
+        border-left: none;
+        border-right: 4px solid #2196f3;
+    }
+
+    .arabic-section .section:hover {
+        transform: translateX(-5px);
+        border-right-color: #1565c0;
+    }
+
+    @media (max-width: 768px) {
+        .medicine-report {
+            padding: 10px;
+        }
+
+        .section {
+            margin: 15px 0;
+            padding: 12px;
+        }
+
+        .section h3 {
+            font-size: 16px;
+        }
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-body">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>💊 Medicine Report</h2>
+                        <a href="{{ url_for('render_home') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Home
+                        </a>
+                    </div>
+
+                    <!-- Upload / Input Section -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="upload-area p-3 border rounded">
+                                <h4>📷 Upload Medicine Image</h4>
+                                <p class="text-muted">Upload a clear photo of the medicine package</p>
+                                <input type="file" id="medicineImage" class="form-control" accept="image/*">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="text-center p-3 border rounded">
+                                <h4>⌨️ Or Type Medicine Name</h4>
+                                <input type="text" id="medicineName" class="form-control mt-2"
+                                       placeholder="e.g. Panadol, Gaviscon, Safetrium">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Button -->
+                    <div class="text-center mt-4">
+                        <button id="generateReport" class="btn btn-primary btn-lg">
+                            🧾 Generate Medicine Report
+                        </button>
+                    </div>
+
+                    <!-- Result Section -->
+                    <div id="resultContainer" class="mt-4" style="display: none;">
+                        <h4 class="mb-3">Analysis Result</h4>
+                        <div id="reportContent" class="border rounded p-3 bg-light"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.getElementById('medicineImage');
+    const nameInput = document.getElementById('medicineName');
+    const generateButton = document.getElementById('generateReport');
+    const resultContainer = document.getElementById('resultContainer');
+    const reportContent = document.getElementById('reportContent');
+
+    generateButton.addEventListener('click', async function() {
+        const formData = new FormData();
+        
+        if (imageInput.files.length > 0) {
+            formData.append('image', imageInput.files[0]);
+        } else if (nameInput.value.trim()) {
+            formData.append('medicine_name', nameInput.value.trim());
+        } else {
+            alert('Please upload an image or enter a medicine name');
+            return;
+        }
+
+        try {
+            generateButton.disabled = true;
+            generateButton.innerHTML = '⏳ Generating Report...';
+            
+            const response = await fetch('/generate_medicine_report', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                reportContent.innerHTML = data.report;
+                resultContainer.style.display = 'block';
+            } else {
+                alert(data.error || 'Failed to generate report');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while generating the report');
+        } finally {
+            generateButton.disabled = false;
+            generateButton.innerHTML = '🧾 Generate Medicine Report';
+        }
+    });
+});
+</script>
+{% endblock %}

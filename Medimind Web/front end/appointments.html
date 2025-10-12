@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% from 'components.html' import background_shapes %}
+
+{% block title %}Appointments - Smart Clinic{% endblock %}
+
+{% block content %}
+{{ background_shapes() }}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Appointments</h2>
+        <a href="{{ url_for('render_home') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Home
+        </a>
+    </div>
+
+    <div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Book New Appointment</h4>
+            </div>
+            <div class="card-body">
+                <form id="appointment-form">
+                    <div class="mb-3">
+                        <label for="specialty" class="form-label">Select Specialty</label>
+                        <select class="form-control" id="specialty" required>
+                            <option value="">Choose a specialty...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="doctor" class="form-label">Select Doctor</label>
+                        <select class="form-control" id="doctor" required disabled>
+                            <option value="">Choose a doctor...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="appointment-day" class="form-label">Select Day</label>
+                        <select class="form-control" id="appointment-day" required disabled>
+                            <option value="">Choose a day...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="appointment-time" class="form-label">Select Time</label>
+                        <select class="form-control" id="appointment-time" required disabled>
+                            <option value="">Choose a time...</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Book Appointment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4>My Appointments</h4>
+            </div>
+            <div class="card-body">
+                <div id="appointments-list">
+                    <!-- Appointments will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const specialtySelect = document.getElementById('specialty');
+    const doctorSelect = document.getElementById('doctor');
+    const daySelect = document.getElementById('appointment-day');
+    const timeSelect = document.getElementById('appointment-time');
+    const appointmentForm = document.getElementById('appointment-form');
+    
+    // Load specialties
+    fetch('/specialties')
+        .then(response => response.json())
+        .then(data => {
+            data.specialties.forEach(specialty => {
+                const option = document.createElement('option');
+                option.value = specialty.specialty_id;
+                option.textContent = specialty.name;
+                specialtySelect.appendChild(option);
+            });
+        })
+        .catch(err => console.error('Error loading specialties:', err));
+
+    // Load doctors when specialty is selected
+    specialtySelect.addEventListener('change', () => {
+        const specialtyId = specialtySelect.value;
+        doctorSelect.disabled = !specialtyId;
+        doctorSelect.innerHTML = '<option value="">Choose a doctor...</option>';
+        daySelect.disabled = true;
+        timeSelect.disabled = true;
+
+        if (specialtyId) {
+            fetch(`/doctors/${specialtyId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.doctors.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.doctor_id;
+                        option.textContent = doctor.name;
+                        doctorSelect.appendChild(option);
+                    });
+                })
+                .catch(err => console.error('Error loading doctors:', err));
+        }
+    });
+
+    // Load available days when doctor is selected
+    doctorSelect.addEventListener('change', () => {
+        const doctorId = doctorSelect.value;
+        const patientId = {{ session.get('patient_id', 'null') }};
+        daySelect.disabled = !doctorId;
+        daySelect.innerHTML = '<option value="">Choose a day...</option>';
+        timeSelect.disabled = true;
+
+        if (doctorId && patientId) {
+            fetch(`/patient_appointments/${doctorId}/${patientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const days = [...new Set(data.available_appointments.map(apt => apt.day))];
+                    days.forEach(day => {
+                        const option = document.createElement('option');
+                        option.value = day;
+                        option.textContent = day;
+                        daySelect.appendChild(option);
+                    });
+                })
+                .catch(err => console.error('Error loading appointments:', err));
+        }
+    });
+
+    // Load available times when day is selected
+    daySelect.addEventListener('change', () => {
+        const selectedDay = daySelect.value;
+        const doctorId = doctorSelect.value;
+        const patientId = {{ session.get('patient_id', 'null') }};
+        timeSelect.disabled = !selectedDay;
+        timeSelect.innerHTML = '<option value="">Choose a time...</option>';
+
+        if (selectedDay && doctorId && patientId) {
+            fetch(`/patient_appointments/${doctorId}/${patientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const times = data.available_appointments
+                        .filter(apt => apt.day === selectedDay)
+                        .sort((a, b) => a.time.localeCompare(b.time));
+                    
+                    times.forEach(slot => {
+                        const option = document.createElement('option');
+                        option.value = slot.time;
+                        option.textContent = `${slot.time} (${slot.available_slots} slots available)`;
+                        timeSelect.appendChild(option);
+                    });
+                })
+                .catch(err => console.error('Error loading time slots:', err));
+        }
+    });
+
+    // Book appointment
+    appointmentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const appointmentData = {
+            patient_id: {{ session.get('patient_id', 'null') }},
+            doctor_id: parseInt(doctorSelect.value),
+            appointment_day: daySelect.value,
+            appointment_time: timeSelect.value
+        };
+
+        try {
+            const response = await fetch('/book_appointment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(appointmentData)
+            });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                alert(result.message);
+                loadMyAppointments();
+                appointmentForm.reset();
+                doctorSelect.disabled = true;
+                daySelect.disabled = true;
+                timeSelect.disabled = true;
+            } else {
+                alert(result.error || result.message);
+            }
+        } catch (err) {
+            console.error('Error booking appointment:', err);
+            alert('Error booking appointment. Please try again.');
+        }
+    });
+
+    // Load and display my appointments
+    function loadMyAppointments() {
+        const patientId = {{ session.get('patient_id', 'null') }};
+        const appointmentsList = document.getElementById('appointments-list');
+
+        if (patientId) {
+            fetch(`/my_appointments/${patientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    appointmentsList.innerHTML = '';
+                    
+                    if (data.appointments.length === 0) {
+                        appointmentsList.innerHTML = '<p>No appointments scheduled.</p>';
+                        return;
+                    }
+
+                    data.appointments.forEach(apt => {
+                        const card = document.createElement('div');
+                        card.className = 'card mb-2';
+                        card.innerHTML = `
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    ${apt.specialty}
+                                </h6>
+                                <p class="card-text mb-1">
+                                    <strong>Doctor:</strong> ${apt.doctor_name}
+                                </p>
+                                <p class="card-text mb-1">
+                                    <strong>Date:</strong> ${apt.day}
+                                </p>
+                                <p class="card-text mb-1">
+                                    <strong>Time:</strong> ${apt.time}
+                                </p>
+                                <p class="card-text">
+                                    <span class="badge ${apt.status === 'Booked' ? 'bg-success' : 'bg-secondary'}">
+                                        ${apt.status}
+                                    </span>
+                                </p>
+                                ${apt.status === 'Booked' ? `
+                                    <button class="btn btn-danger btn-sm cancel-appointment" 
+                                            data-appointment-id="${apt.appointment_id}">
+                                        Cancel
+                                    </button>
+                                ` : ''}
+                            </div>
+                        `;
+
+                        if (apt.status === 'Booked') {
+                            const cancelBtn = card.querySelector('.cancel-appointment');
+                            cancelBtn.addEventListener('click', () => cancelAppointment(apt.appointment_id));
+                        }
+
+                        appointmentsList.appendChild(card);
+                    });
+                })
+                .catch(err => console.error('Error loading appointments:', err));
+        }
+    }
+
+    // Cancel appointment
+    async function cancelAppointment(appointmentId) {
+        if (!confirm('Are you sure you want to cancel this appointment?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/cancel_appointment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    appointment_id: appointmentId,
+                    patient_id: {{ session.get('patient_id', 'null') }}
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                alert(result.message);
+                loadMyAppointments();
+            } else {
+                alert(result.error || result.message);
+            }
+        } catch (err) {
+            console.error('Error cancelling appointment:', err);
+            alert('Error cancelling appointment. Please try again.');
+        }
+    }
+
+    // Load appointments on page load
+    loadMyAppointments();
+});
+</script>
+{% endblock %}

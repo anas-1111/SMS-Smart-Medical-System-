@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Smart Clinic{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4>Register New Patient</h4>
+    </div>
+    <div class="card-body">
+        <form id="register-form" method="POST" action="/register">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username*</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                        <small id="username-feedback" class="form-text"></small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password*</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <small class="form-text text-muted">
+                            Password must be at least 8 characters long and contain both letters and numbers.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name*</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name*</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gender" class="form-label">Gender</label>
+                        <select class="form-control" id="gender" name="gender">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="date_of_birth" class="form-label">Date of Birth*</label>
+                        <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="national_id" class="form-label">National ID</label>
+                        <input type="text" class="form-control" id="national_id" name="national_id">
+                    </div>
+                    <div class="mb-3">
+                        <label for="blood_type" class="form-label">Blood Type</label>
+                        <select class="form-control" id="blood_type" name="blood_type">
+                            <option value="">Select Blood Type</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                        <input type="text" class="form-control" id="emergency_contact" name="emergency_contact">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="emergency_phone" class="form-label">Emergency Phone</label>
+                        <input type="tel" class="form-control" id="emergency_phone" name="emergency_phone">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Face Photo</label>
+                <div class="webcam-container">
+                    <video id="webcam" autoplay playsinline width="640" height="480"></video>
+                    <button type="button" id="capture-btn" class="btn btn-primary capture-btn">Capture Photo</button>
+                </div>
+                <canvas id="canvas" style="display: none;"></canvas>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">Register</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let video = null;
+let canvas = null;
+let captureBtn = null;
+let stream = null;
+let capturedImage = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Webcam setup
+    video = document.getElementById('webcam');
+    canvas = document.getElementById('canvas');
+    captureBtn = document.getElementById('capture-btn');
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Error accessing webcam:", err);
+        alert("Could not access webcam. Please check permissions.");
+    }
+
+    // Username availability check
+    const usernameInput = document.getElementById('username');
+    const usernameFeedback = document.getElementById('username-feedback');
+
+    usernameInput.addEventListener('blur', async () => {
+        if (usernameInput.value) {
+            try {
+                const response = await fetch(`/check_username/${usernameInput.value}`);
+                const data = await response.json();
+                
+                if (data.exists) {
+                    usernameFeedback.textContent = "Username already taken";
+                    usernameFeedback.className = "form-text text-danger";
+                    usernameInput.classList.add('is-invalid');
+                } else {
+                    usernameFeedback.textContent = "Username available";
+                    usernameFeedback.className = "form-text text-success";
+                    usernameInput.classList.remove('is-invalid');
+                }
+            } catch (err) {
+                console.error("Error checking username:", err);
+            }
+        }
+    });
+
+    // Photo capture
+    captureBtn.addEventListener('click', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        capturedImage = canvas.toDataURL('image/jpeg').split(',')[1];
+        captureBtn.textContent = "Recapture Photo";
+    });
+
+    // Form submission
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!capturedImage) {
+            alert("Please capture a face photo before registering");
+            return;
+        }
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        data.face_image = capturedImage;
+
+        try {
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert("Registration successful!");
+                window.location.href = '/login';
+            } else {
+                alert(result.error || "Registration failed");
+            }
+        } catch (err) {
+            console.error("Error during registration:", err);
+            alert("Error during registration. Please try again.");
+        }
+    });
+});
+
+// Cleanup when leaving page
+window.addEventListener('beforeunload', () => {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

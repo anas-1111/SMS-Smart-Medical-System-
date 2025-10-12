@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Smart Clinic{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Login with Face</h4>
+            </div>
+            <div class="card-body">
+                <div class="webcam-container mb-3">
+                    <video id="webcam" autoplay playsinline width="640" height="480"></video>
+                    <button id="capture-btn" class="btn btn-primary capture-btn">Capture Photo</button>
+                </div>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <button id="face-login-btn" class="btn btn-success w-100" style="display: none;">Login with Face</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Manual Login</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/login">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let video = null;
+let canvas = null;
+let captureBtn = null;
+let faceLoginBtn = null;
+let stream = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    video = document.getElementById('webcam');
+    canvas = document.getElementById('canvas');
+    captureBtn = document.getElementById('capture-btn');
+    faceLoginBtn = document.getElementById('face-login-btn');
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Error accessing webcam:", err);
+        alert("Could not access webcam. Please check permissions.");
+    }
+
+    captureBtn.addEventListener('click', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        captureBtn.style.display = 'none';
+        faceLoginBtn.style.display = 'block';
+    });
+
+    faceLoginBtn.addEventListener('click', async () => {
+        const imageData = canvas.toDataURL('image/jpeg').split(',')[1];
+        
+        try {
+            const response = await fetch('/login_face', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    face_image: imageData
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                window.location.href = '/profile';
+            } else {
+                alert(data.message || data.error);
+                captureBtn.style.display = 'block';
+                faceLoginBtn.style.display = 'none';
+            }
+        } catch (err) {
+            console.error("Error during face login:", err);
+            alert("Error during face login. Please try again.");
+        }
+    });
+});
+
+// Cleanup when leaving page
+window.addEventListener('beforeunload', () => {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

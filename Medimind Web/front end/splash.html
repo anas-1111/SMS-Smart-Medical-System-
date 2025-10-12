@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Clinic</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f8ff;
+            overflow: hidden;
+        }
+        .splash-container {
+            text-align: center;
+            animation: fadeInOut 3s forwards;
+        }
+        .logo {
+            max-width: 300px;
+            animation: scale 3s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: scale(0.95); }
+            20% { opacity: 1; transform: scale(1); }
+            80% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.95); }
+        }
+        @keyframes scale {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Smart Clinic Logo" class="logo">
+    </div>
+    <script>
+        setTimeout(() => {
+            window.location.href = "{{ url_for('render_login') }}";
+        }, 3000);
+    </script>
+</body>
+</html>

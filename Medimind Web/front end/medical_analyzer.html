@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Medical Image Analyzer</h2>
+                        <a href="{{ url_for('render_home') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Home
+                        </a>
+                    </div>
+        <div class="card-body">
+            <div class="mb-4">>
+                <p class="lead">Upload a medical image (X-ray, MRI, CT, Ultrasound, etc.) to generate either a professional medical report or a simplified patient-friendly summary.</p>
+            </div>
+
+            <form id="analyzerForm" class="needs-validation" novalidate>
+                <div class="mb-4">
+                    <label class="form-label">Select Language:</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="language" id="english" value="🇬🇧 English" checked>
+                        <label class="btn btn-outline-primary" for="english">🇬🇧 English</label>
+
+                        <input type="radio" class="btn-check" name="language" id="arabic" value="🇪🇬 العربية">
+                        <label class="btn btn-outline-primary" for="arabic">🇪🇬 العربية</label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Report Type:</label>
+                    <div id="englishOptions">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="reportType" id="professional" value="Professional Medical Report" checked>
+                            <label class="btn btn-outline-primary" for="professional">Professional Medical Report</label>
+
+                            <input type="radio" class="btn-check" name="reportType" id="friendly" value="Friendly Patient Report">
+                            <label class="btn btn-outline-primary" for="friendly">Friendly Patient Report</label>
+                        </div>
+                    </div>
+                    <div id="arabicOptions" style="display: none;">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="reportType" id="professionalAr" value="تقرير طبي احترافي">
+                            <label class="btn btn-outline-primary" for="professionalAr">تقرير طبي احترافي</label>
+
+                            <input type="radio" class="btn-check" name="reportType" id="friendlyAr" value="تقرير مبسط للمريض">
+                            <label class="btn btn-outline-primary" for="friendlyAr">تقرير مبسط للمريض</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="imageUpload" class="form-label">Upload Medical Image:</label>
+                    <input type="file" class="form-control" id="imageUpload" name="image" accept="image/*" required>
+                    <div class="invalid-feedback">Please select an image file.</div>
+                </div>
+
+                <div id="imagePreview" class="text-center mb-4" style="display: none;">
+                    <img id="preview" class="img-fluid" style="max-height: 300px;" alt="Preview">
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                        <span id="analyzeText">Start Analysis</span>
+                        <span id="loadingSpinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                    </button>
+                </div>
+
+                <!-- Debug information -->
+                <div id="debugInfo" class="mt-3" style="display: none;">
+                    <pre class="bg-light p-3 rounded"></pre>
+                </div>
+            </form>
+
+            <div id="resultSection" class="mt-4" style="display: none;">
+                <h3 class="mb-3">Analysis Result</h3>
+                <div id="analysisResult" class="card">
+                    <div class="card-body analysis-content"></div>
+                </div>
+                
+                <!-- Save to Medical History Section -->
+                <div class="mt-4 text-center">
+                    <div class="alert alert-info mb-3">
+                        Would you like to save this analysis to your medical history?
+                    </div>
+                    <button id="saveToHistoryBtn" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save to Medical History
+                    </button>
+                    <div id="saveSuccess" class="alert alert-success mt-3" style="display: none;">
+                        Analysis saved successfully to your medical history!
+                    </div>
+                    <div id="saveError" class="alert alert-danger mt-3" style="display: none;">
+                        An error occurred while saving. Please try again.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Markdown styling -->
+            <style>
+                .analysis-content {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                }
+                
+                .analysis-content h3 {
+                    color: #1a73e8;
+                    font-size: 1.5rem;
+                    margin-top: 2rem;
+                    margin-bottom: 1rem;
+                    font-weight: 600;
+                    border-bottom: 2px solid #1a73e8;
+                    padding-bottom: 0.5rem;
+                }
+
+                .analysis-content ul {
+                    list-style-type: none;
+                    padding-left: 1rem;
+                }
+
+                .analysis-content li {
+                    position: relative;
+                    padding-left: 1.5rem;
+                    margin-bottom: 0.75rem;
+                }
+
+                .analysis-content li:before {
+                    content: "•";
+                    color: #1a73e8;
+                    font-weight: bold;
+                    position: absolute;
+                    left: 0;
+                }
+
+                .analysis-content p {
+                    margin-bottom: 1rem;
+                }
+
+                /* Add styles for blockquotes if used in the analysis */
+                .analysis-content blockquote {
+                    border-left: 4px solid #1a73e8;
+                    padding-left: 1rem;
+                    margin-left: 0;
+                    color: #555;
+                }
+
+                /* Style for references section */
+                .analysis-content h3:last-of-type {
+                    margin-top: 2rem;
+                    color: #34a853;
+                    border-bottom-color: #34a853;
+                }
+
+                /* Responsive text size */
+                @media (max-width: 768px) {
+                    .analysis-content {
+                        font-size: 0.9rem;
+                    }
+                    .analysis-content h3 {
+                        font-size: 1.3rem;
+                    }
+                }
+            </style>
+
+            <!-- Add marked.js for Markdown parsing -->
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+            <script>
+                // Configure marked options
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+            </script>
+            <script src="{{ url_for('static', filename='analyzer.js') }}"></script>
+        </div>
+    </div>
+    
+    <!-- Book Appointment Button -->
+    <div class="text-center mt-4 mb-5">
+        <a href="{{ url_for('render_appointments') }}" class="btn btn-primary btn-lg">
+            🏥 Book a Doctor's Appointment
+        </a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('analyzerForm');
+    const imageUpload = document.getElementById('imageUpload');
+    const preview = document.getElementById('preview');
+    const imagePreview = document.getElementById('imagePreview');
+    const englishOptions = document.getElementById('englishOptions');
+    const arabicOptions = document.getElementById('arabicOptions');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const analyzeText = document.getElementById('analyzeText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const resultSection = document.getElementById('resultSection');
+    const analysisResult = document.getElementById('analysisResult');
+    // Language toggle
+    document.querySelectorAll('input[name="language"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === "🇬🇧 English") {
+                englishOptions.style.display = 'block';
+                arabicOptions.style.display = 'none';
+                document.getElementById('professional').checked = true;
+            } else {
+                englishOptions.style.display = 'none';
+                arabicOptions.style.display = 'block';
+                document.getElementById('professionalAr').checked = true;
+            }
+        });
+    });
+
+    let currentImage = null;
+
+    // Image preview
+    imageUpload.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            currentImage = this.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // Reset previous results
+        resultSection.style.display = 'none';
+        saveSuccess.style.display = 'none';
+        saveError.style.display = 'none';
+        
+        if (!currentImage) {
+            alert('Please select an image file.');
+            return;
+        }
+
+        // Get selected options
+        const language = document.querySelector('input[name="language"]:checked').value;
+        const reportType = document.querySelector('input[name="reportType"]:checked').value;
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('image', currentImage);
+        formData.append('language', language);
+        formData.append('report_type', reportType);
+        
+        // Log the form data for debugging
+        console.log('Submitting form data:', {
+            image: currentImage.name,
+            language: language,
+            reportType: reportType
+        });
+
+        // Show loading state
+        analyzeText.style.display = 'none';
+        loadingSpinner.style.display = 'inline-block';
+        analyzeBtn.disabled = true;
+
+        try {
+            console.log('Sending analysis request...');
+            const response = await fetch('/analyze_image', {
+                method: 'POST',
+                body: formData
+            });
+
+            console.log('Response status:', response.status);
+            let data;
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Error parsing JSON:', parseError);
+                throw new Error('Invalid response from server');
+            }
+            
+            if (!response.ok) {
+                console.error('Server error:', data.error || 'Unknown error');
+                throw new Error(data.error || 'Analysis failed');
+            }
+            
+            // Parse markdown and display result
+            resultSection.style.display = 'block';
+            const parsedContent = marked.parse(data.result);
+            analysisResult.querySelector('.card-body').innerHTML = parsedContent;
+            
+            // Apply RTL direction for Arabic content
+            if (language === "🇪🇬 العربية") {
+                analysisResult.querySelector('.card-body').dir = 'rtl';
+            } else {
+                analysisResult.querySelector('.card-body').dir = 'ltr';
+            }
+            
+            // Store all the analysis data for later saving
+            window.lastAnalysisData = {
+                result: data.result,
+                parsed_sections: data.parsed_sections,
+                image_data: data.image_data
+            };
+            
+            // Reset save button and messages
+            saveToHistoryBtn.disabled = false;
+            saveToHistoryBtn.style.display = 'inline-block';
+            saveToHistoryBtn.innerHTML = '<i class="fas fa-save"></i> Save to Medical History';
+            saveSuccess.style.display = 'none';
+            saveError.style.display = 'none';
+            
+            // Scroll to result
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            console.error('Analysis error:', error);
+            alert('An error occurred during analysis. Please try again.');
+        } finally {
+            // Reset loading state
+            analyzeText.style.display = 'inline-block';
+            loadingSpinner.style.display = 'none';
+            analyzeBtn.disabled = false;
+        }
+
+    });
+
+    // Store analysis data globally
+    window.lastAnalysisData = null;
+
+    // Handle saving to medical history
+    saveToHistoryBtn.addEventListener('click', async function() {
+        if (!window.lastAnalysisData) {
+            alert('No analysis data available to save.');
+            return;
+        }
+
+        const button = this;
+        
+        // Disable button and show loading state
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        
+        try {
+            const response = await fetch('/save_analysis_to_history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    analysis_result: window.lastAnalysisData.result,
+                    parsed_sections: window.lastAnalysisData.parsed_sections,
+                    image_data: window.lastAnalysisData.image_data,
+                    analysis_type: document.querySelector('input[name="reportType"]:checked').value,
+                    language: document.querySelector('input[name="language"]:checked').value
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                saveSuccess.style.display = 'block';
+                saveError.style.display = 'none';
+                button.style.display = 'none'; // Hide the button after successful save
+            } else {
+                throw new Error(data.error || 'Failed to save');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            saveError.textContent = 'Error: ' + (error.message || 'Failed to save. Please try again.');
+            saveError.style.display = 'block';
+            saveSuccess.style.display = 'none';
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-save"></i> Try Saving Again';
+        }
+    });
+});
+</script>
+
+<style>
+.btn-group {
+    display: flex;
+}
+.btn-group .btn {
+    flex: 1;
+}
+</style>
+{% endblock %}

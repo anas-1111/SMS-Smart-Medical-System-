@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% from 'components.html' import background_shapes %}
+
+{% block title %}Medical History - Smart Clinic{% endblock %}
+
+{% block content %}
+{{ background_shapes() }}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Medical History</h2>
+        <a href="{{ url_for('render_home') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Home
+        </a>
+    </div>
+    
+    <!-- General Medical History Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>General Medical Information</h4>
+        </div>
+        <div class="card-body">
+            <form id="medicalHistoryForm">
+                <div class="mb-3">
+                    <label for="chronicDiseases" class="form-label">Chronic Diseases</label>
+                    <textarea class="form-control" id="chronicDiseases" name="chronic_diseases" rows="2">{{ medical_history.chronic_diseases if medical_history else '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="allergies" class="form-label">Allergies</label>
+                    <textarea class="form-control" id="allergies" name="allergies" rows="2">{{ medical_history.allergies if medical_history else '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="currentMedications" class="form-label">Current Medications</label>
+                    <textarea class="form-control" id="currentMedications" name="current_medications" rows="2">{{ medical_history.current_medications if medical_history else '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="pastSurgeries" class="form-label">Past Surgeries</label>
+                    <textarea class="form-control" id="pastSurgeries" name="past_surgeries" rows="2">{{ medical_history.past_surgeries if medical_history else '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="familyHistory" class="form-label">Family History</label>
+                    <textarea class="form-control" id="familyHistory" name="family_history" rows="2">{{ medical_history.family_history if medical_history else '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Additional Notes</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ medical_history.notes if medical_history else '' }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Analysis Reports Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Medical Image Analysis Reports</h4>
+            <a href="{{ url_for('render_medical_analyzer') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> New Analysis
+            </a>
+        </div>
+        <div class="card-body">
+            {% if image_analyses %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Region</th>
+                            <th>Primary Diagnosis</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for analysis in image_analyses %}
+                        <tr>
+                            <td>{{ analysis.date }}</td>
+                            <td>{{ analysis.image_type }}</td>
+                            <td>{{ analysis.anatomical_region }}</td>
+                            <td>{{ analysis.primary_diagnosis }}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="viewAnalysis({{ analysis.analysis_id }})">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No image analysis reports found. Click "New Analysis" to analyze a medical image.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Lab Report Analysis Section -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Lab Report Analysis Reports</h4>
+            <a href="{{ url_for('render_lab_analyzer') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> New Lab Analysis
+            </a>
+        </div>
+        <div class="card-body">
+            {% if lab_analyses %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Language</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for analysis in lab_analyses %}
+                        <tr>
+                            <td>{{ analysis.analysis_date }}</td>
+                            <td>{{ analysis.analysis_type }}</td>
+                            <td>{{ analysis.language }}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm" onclick="viewLabAnalysis({{ analysis.analysis_id }})">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No lab report analyses found. Click "New Lab Analysis" to analyze a lab report.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Image Analysis Details Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Analysis Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3" id="analysisImage"></div>
+                <div class="mb-3">
+                    <h6>Image Type & Region</h6>
+                    <p id="imageTypeRegion"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Key Findings</h6>
+                    <p id="keyFindings"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Primary Diagnosis</h6>
+                    <p id="primaryDiagnosis"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Diagnostic Assessment</h6>
+                    <p id="diagnosticAssessment"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Patient-Friendly Explanation</h6>
+                    <p id="patientExplanation"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Research Context</h6>
+                    <p id="researchContext"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lab Analysis Details Modal -->
+<div class="modal fade" id="labAnalysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lab Report Analysis Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6>Analysis Type</h6>
+                    <p id="labAnalysisType"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Language</h6>
+                    <p id="labAnalysisLanguage"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Results</h6>
+                    <div id="labAnalysisResults" class="border rounded p-3 bg-light"></div>
+                </div>
+                <div class="mb-3">
+                    <h6>Original Report</h6>
+                    <div id="labAnalysisFile" class="text-center"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Save medical history form handler
+document.getElementById('medicalHistoryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        patient_id: {{ session.patient_id }},
+        chronic_diseases: document.getElementById('chronicDiseases').value,
+        allergies: document.getElementById('allergies').value,
+        current_medications: document.getElementById('currentMedications').value,
+        past_surgeries: document.getElementById('pastSurgeries').value,
+        family_history: document.getElementById('familyHistory').value,
+        notes: document.getElementById('notes').value
+    };
+
+    fetch('/medical-history', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Medical history saved successfully!');
+            location.reload();
+        } else {
+            alert('Error saving medical history: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving medical history. Please try again.');
+    });
+});
+
+// Initialize Bootstrap modals
+let analysisModal, labAnalysisModal;
+document.addEventListener('DOMContentLoaded', function() {
+    analysisModal = new bootstrap.Modal(document.getElementById('analysisModal'));
+    labAnalysisModal = new bootstrap.Modal(document.getElementById('labAnalysisModal'));
+});
+
+// Function to view image analysis details
+function viewAnalysis(analysisId) {
+    fetch(`/get_analysis/${analysisId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Display image if available
+            const imageContainer = document.getElementById('analysisImage');
+            if (data.image_data) {
+                imageContainer.innerHTML = `<img src="${data.image_data}" class="img-fluid mb-3" style="max-height: 300px;">`;
+            } else {
+                imageContainer.innerHTML = '';
+            }
+            
+            // Update modal content with markdown formatting
+            document.getElementById('imageTypeRegion').textContent = 
+                `${data.image_type || 'Not specified'} - ${data.anatomical_region || 'Not specified'}`;
+            document.getElementById('keyFindings').innerHTML = marked.parse(data.key_findings || 'Not available');
+            document.getElementById('primaryDiagnosis').innerHTML = marked.parse(data.primary_diagnosis || 'Not available');
+            document.getElementById('diagnosticAssessment').innerHTML = marked.parse(data.diagnostic_assessment || 'Not available');
+            document.getElementById('patientExplanation').innerHTML = marked.parse(data.patient_explanation || 'Not available');
+            document.getElementById('researchContext').innerHTML = marked.parse(data.research_context || 'Not available');
+            
+            // Show modal
+            analysisModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading analysis details. Please try again.');
+        });
+}
+
+// Function to view lab analysis details
+function viewLabAnalysis(analysisId) {
+    fetch(`/get_lab_analysis/${analysisId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update modal content
+            document.getElementById('labAnalysisType').textContent = data.analysis_type || 'Not specified';
+            document.getElementById('labAnalysisLanguage').textContent = data.language || 'Not specified';
+            document.getElementById('labAnalysisResults').innerHTML = marked.parse(data.result_text || 'Not available');
+            
+            // Display file if available
+            const fileContainer = document.getElementById('labAnalysisFile');
+            if (data.file_data) {
+                if (data.file_type === 'pdf') {
+                    fileContainer.innerHTML = `
+                        <embed src="${data.file_data}" type="application/pdf" width="100%" height="600px">
+                    `;
+                } else {
+                    fileContainer.innerHTML = `
+                        <img src="${data.file_data}" class="img-fluid mb-3" style="max-height: 300px;">
+                    `;
+                }
+            } else {
+                fileContainer.innerHTML = '<p class="text-muted">No file available</p>';
+            }
+            
+            // Show modal
+            labAnalysisModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading lab analysis details. Please try again.');
+        });
+}
+</script>
+
+<!-- Add marked.js for markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}

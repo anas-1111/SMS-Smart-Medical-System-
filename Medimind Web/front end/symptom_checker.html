@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}Symptom Checker - Smart Clinic{% endblock %}
+
+{% block content %}
+<style>
+    /* === UI THEME === */
+    :root {
+        --primary: #22d3ee;
+        --primary-dark: #0d5f6d;
+        --bg-start: #8fc3d5;
+        --bg-end: #4a70ca;
+        --card-bg: rgba(17, 24, 39, 0.7);
+        --user-bubble: #d35624;
+        --assist-bubble: #1394c3;
+        --text: #ffffff;
+        --radius: 16px;
+    }
+
+    .chat-container {
+        position: relative;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 20px;
+        background: linear-gradient(145deg, var(--bg-start) 0%, var(--bg-end) 100%);
+        min-height: 80vh;
+        border-radius: var(--radius);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .back-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 8px 15px;
+        background: var(--primary);
+        color: #041014;
+        border: none;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .back-button:hover {
+        background: var(--primary-dark);
+        color: white;
+        text-decoration: none;
+    }
+
+    .book-appointment-btn {
+        display: block;
+        width: 100%;
+        max-width: 300px;
+        margin: 20px auto;
+        padding: 12px 20px;
+        background: var(--primary);
+        color: #041014;
+        border: none;
+        border-radius: 8px;
+        text-align: center;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.3s;
+    }
+
+    .book-appointment-btn:hover {
+        background: var(--primary-dark);
+        color: white;
+        text-decoration: none;
+    }
+
+    .chat-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .chat-header h1 {
+        color: var(--text);
+        margin: 0;
+    }
+
+    .chat-messages {
+        margin-bottom: 20px;
+        overflow-y: auto;
+        max-height: 60vh;
+        padding: 10px;
+    }
+
+    .message {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .message.user {
+        justify-content: flex-end;
+    }
+
+    .message-content {
+        padding: 14px 16px;
+        border-radius: var(--radius);
+        max-width: 70%;
+        white-space: pre-wrap;
+    }
+
+    /* Style lists and formatting */
+    .message-content ul {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+        list-style-type: disc;
+    }
+
+    .message-content ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .message-content li {
+        margin: 0.25rem 0;
+    }
+
+    .message-content p {
+        margin: 0.5rem 0;
+    }
+
+    .message-content strong {
+        font-weight: bold;
+    }
+
+    .message-content em {
+        font-style: italic;
+    }
+
+    .user .message-content {
+        background: var(--user-bubble);
+        color: var(--text);
+    }
+
+    .assistant .message-content {
+        background: var(--assist-bubble);
+        color: var(--text);
+    }
+
+    .chat-input {
+        display: flex;
+        gap: 10px;
+        padding: 10px;
+        background: var(--card-bg);
+        border-radius: var(--radius);
+    }
+
+    .chat-input textarea {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+        resize: none;
+        min-height: 44px;
+    }
+
+    .chat-input button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 12px;
+        background: var(--primary);
+        color: #041014;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .chat-input button:hover {
+        background: var(--primary-dark);
+    }
+
+    .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 10px;
+        background: var(--card-bg);
+        color: var(--text);
+    }
+
+    /* Loading animation */
+    .typing-indicator {
+        display: none;
+        padding: 10px;
+        background: var(--assist-bubble);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        color: var(--text);
+    }
+
+    .typing-indicator.visible {
+        display: block;
+    }
+
+    .dots {
+        display: inline-block;
+    }
+
+    .dots span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: var(--text);
+        border-radius: 50%;
+        margin: 0 2px;
+        animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+</style>
+
+<div class="chat-container">
+    <a href="{{ url_for('render_home') }}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
+    <div class="chat-header">
+        <span style="font-size:28px;">🏥</span>
+        <h1>SYMPTOM CHECKER</h1>
+        <hr/>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <!-- Messages will be added here dynamically -->
+    </div>
+
+    <div class="typing-indicator" id="typingIndicator">
+        <div class="avatar">🤖</div>
+        <div class="dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <div class="chat-input">
+        <textarea id="userInput" placeholder="Describe your symptoms..." rows="1"></textarea>
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    
+    <a href="{{ url_for('render_appointments') }}" class="book-appointment-btn">
+        🏥 Book a Doctor's Appointment
+    </a>
+</div>
+
+<script>
+    let messageHistory = [];
+
+    // Adjust textarea height based on content
+    const textarea = document.getElementById('userInput');
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // Handle Enter key
+    textarea.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    async function sendMessage() {
+        const userInput = document.getElementById('userInput');
+        const message = userInput.value.trim();
+        
+        if (!message) return;
+
+        // Add user message to chat
+        addMessage('user', message);
+        messageHistory.push({'role': 'user', 'content': message});
+        
+        // Clear input
+        userInput.value = '';
+        userInput.style.height = 'auto';
+
+        // Show typing indicator
+        document.getElementById('typingIndicator').classList.add('visible');
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            
+            // Hide typing indicator
+            document.getElementById('typingIndicator').classList.remove('visible');
+
+            // Add bot response to chat
+            addMessage('assistant', data.response);
+            messageHistory.push({'role': 'assistant', 'content': data.response});
+
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('typingIndicator').classList.remove('visible');
+            addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+        }
+    }
+
+    function formatBotResponse(text) {
+        // Format numbered lists (e.g., "1. Item")
+        text = text.replace(/(\d+\.\s+[^\n]+)/g, '<li>$1</li>');
+        
+        // Format bullet points
+        text = text.replace(/(?:^|\n)[-•]\s+([^\n]+)/g, '\n<li>$1</li>');
+        
+        // Wrap lists in <ul> or <ol> tags
+        text = text.replace(/(<li>(\d+)\.[^<]+<\/li>\s*)+/g, '<ol>$&</ol>');
+        text = text.replace(/(<li>[^<]+<\/li>\s*)+/g, '<ul>$&</ul>');
+        
+        // Format bold text
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Format italic text
+        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        // Format paragraphs
+        text = text.split('\n\n').map(para => 
+            para.trim() ? `<p>${para}</p>` : ''
+        ).join('');
+        
+        // Handle single newlines within paragraphs
+        text = text.replace(/\n(?!\n)/g, '<br>');
+        
+        // Clean up extra whitespace
+        return text.trim();
+    }
+
+    function addMessage(role, content) {
+        const chatMessages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = role === 'user' ? '🧑' : '🩺';
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+
+        // Format content based on role
+        if (role === 'assistant') {
+            messageContent.innerHTML = formatBotResponse(content);
+        } else {
+            messageContent.textContent = content;
+        }
+
+        if (role === 'user') {
+            messageDiv.appendChild(messageContent);
+            messageDiv.appendChild(avatar);
+        } else {
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+        }
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Add initial greeting
+    window.onload = function() {
+        addMessage('assistant', 'Hello! I\'m your Symptom Checker Assistant. Please describe what symptoms you\'re experiencing, and I\'ll help you understand them better. Remember: This is not a substitute for professional medical advice. If you\'re experiencing severe symptoms, please seek immediate medical attention.');
+    };
+</script>
+{% endblock %}

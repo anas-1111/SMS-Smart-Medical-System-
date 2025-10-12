@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% from 'components.html' import background_shapes %}
+
+{% block title %}Home - Smart Clinic{% endblock %}
+
+{% block content %}
+<style>
+    .menu-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+        box-shadow: 0 10px 20px rgba(26, 115, 232, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: row;
+        height: 100%;
+        min-height: 200px; /* Ensures all are same height */
+    }
+
+    .menu-card:hover {
+        transform: translateY(-10px);
+        border-color: var(--primary-color);
+        box-shadow: 0 15px 30px rgba(26, 115, 232, 0.2);
+    }
+
+    .card-icon {
+        width: 70px;
+        height: 70px;
+        margin-right: 1.2rem;
+    }
+
+    .card-content h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .card-content p {
+        font-size: 0.9rem;
+    }
+
+    .welcome-text {
+        color: var(--primary-color);
+        font-size: 2.3rem;
+        font-weight: 600;
+        margin-bottom: 3rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .menu-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+    }
+
+    .menu-col {
+        flex: 1 1 calc(25% - 1.5rem); /* four per row for first, three for second */
+        min-width: 220px;
+    }
+
+    .second-row .menu-col {
+        flex: 1 1 calc(33.333% - 1.5rem);
+    }
+
+    @media (max-width: 992px) {
+        .menu-col, .second-row .menu-col {
+            flex: 1 1 45%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .menu-col, .second-row .menu-col {
+            flex: 1 1 100%;
+        }
+    }
+</style>
+
+<div class="background-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+</div>
+
+<div class="container mt-5 text-center">
+    <h1 class="welcome-text animate__animated animate__fadeIn">
+        Welcome, {{ session.get('name') }}!
+    </h1>
+
+    <!-- First row -->
+    <div class="menu-row">
+        <div class="menu-col">
+            <a href="/appointments" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInLeft">
+                    <img src="{{ url_for('static', filename='appointment-icon.png') }}" alt="Appointments" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>Appointments</h3>
+                        <p class="text-muted mb-0">Schedule and manage your appointments</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="menu-col">
+            <a href="/medical-history" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInRight">
+                    <img src="{{ url_for('static', filename='medical-history-icon.png') }}" alt="Medical History" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>Medical History</h3>
+                        <p class="text-muted mb-0">View and update your medical records</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="menu-col">
+            <a href="/medical-image-analyzer" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInLeft">
+                    <img src="{{ url_for('static', filename='analyzer-icon.png') }}" alt="Medical Image Analyzer" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>Image Analyzer</h3>
+                        <p class="text-muted mb-0">AI-powered medical image analysis</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="menu-col">
+            <a href="/report-analyzer" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInUp">
+                    <img src="{{ url_for('static', filename='report-icon.png') }}" alt="Lab Report Analyzer" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>Lab Reports</h3>
+                        <p class="text-muted mb-0">AI-powered lab report analysis</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Second row -->
+    <div class="menu-row second-row mt-4">
+        <div class="menu-col">
+            <a href="/symptom-checker" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInUp">
+                    <img src="{{ url_for('static', filename='symptom-icon.png') }}" alt="Symptom Checker" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>Symptom Checker</h3>
+                        <p class="text-muted mb-0">AI-powered symptom analysis</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="menu-col">
+            <a href="/first-aid" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInRight">
+                    <img src="{{ url_for('static', filename='first-aid-icon.png') }}" alt="First Aid Assistant" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>First Aid</h3>
+                        <p class="text-muted mb-0">AI-powered first aid assistance</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="menu-col">
+            <a href="/medicine-report" class="text-decoration-none">
+                <div class="menu-card animate__animated animate__fadeInUp">
+                    <img src="{{ url_for('static', filename='medicine-icon.png') }}" alt="Medicine Report" class="card-icon">
+                    <div class="card-content text-start">
+                        <h3>Medicine Report</h3>
+                        <p class="text-muted mb-0">AI-powered medicine information</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

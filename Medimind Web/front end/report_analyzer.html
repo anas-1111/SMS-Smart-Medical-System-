@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Lab Report Analyzer</h2>
+                        <a href="{{ url_for('render_home') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Home
+                        </a>
+                    </div>
+                    
+                    <form id="analyzerForm" class="needs-validation" novalidate>
+                        <!-- Language Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Select Language:</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="language" id="english" value="English" checked>
+                                <label class="btn btn-outline-primary" for="english">🇬🇧 English</label>
+
+                                <input type="radio" class="btn-check" name="language" id="arabic" value="Arabic">
+                                <label class="btn btn-outline-primary" for="arabic">🇪🇬 العربية</label>
+                            </div>
+                        </div>
+
+                        <!-- Report Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Report Type:</label>
+                            <div id="englishOptions">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="reportType" id="professional" value="Detailed Medical Report" checked>
+                                    <label class="btn btn-outline-primary" for="professional">Detailed Medical Report</label>
+
+                                    <input type="radio" class="btn-check" name="reportType" id="friendly" value="Friendly Patient Report">
+                                    <label class="btn btn-outline-primary" for="friendly">Friendly Patient Report</label>
+                                </div>
+                            </div>
+                            <div id="arabicOptions" style="display: none;">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="reportType" id="professionalAr" value="تقرير طبي احترافي">
+                                    <label class="btn btn-outline-primary" for="professionalAr">تقرير طبي احترافي</label>
+
+                                    <input type="radio" class="btn-check" name="reportType" id="friendlyAr" value="تقرير مبسط للمريض">
+                                    <label class="btn btn-outline-primary" for="friendlyAr">تقرير مبسط للمريض</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="mb-4">
+                            <label for="reportUpload" class="form-label">Upload Lab Report:</label>
+                            <input type="file" class="form-control" id="reportUpload" name="file" accept=".pdf,image/*" required>
+                            <div class="invalid-feedback">Please select a PDF or image file.</div>
+                            <small class="form-text text-muted">Supported formats: PDF, PNG, JPG, JPEG</small>
+                        </div>
+
+                        <!-- File Preview -->
+                        <div id="filePreview" class="text-center mb-4" style="display: none;">
+                            <img id="preview" class="img-fluid" style="max-height: 300px;" alt="Preview">
+                            <p id="pdfPreview" class="mt-2" style="display: none;">PDF file selected</p>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                                <span id="analyzeText">
+                                    <i class="fas fa-microscope"></i> Start Analysis
+                                </span>
+                                <span id="loadingSpinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Analysis Results -->
+                    <div id="resultSection" class="mt-4" style="display: none;">
+                        <h3 class="mb-3">Analysis Result</h3>
+                        <div id="analysisResult" class="card">
+                            <div class="card-body analysis-content"></div>
+                        </div>
+                        
+                        <!-- Save to Medical History Section -->
+                        <div class="mt-4 text-center">
+                            <div class="alert alert-info mb-3">
+                                Would you like to save this analysis to your medical history?
+                            </div>
+                            <button id="saveToHistoryBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save to Medical History
+                            </button>
+                            <div id="saveSuccess" class="alert alert-success mt-3" style="display: none;">
+                                Analysis saved successfully to your medical history!
+                            </div>
+                            <div id="saveError" class="alert alert-danger mt-3" style="display: none;">
+                                An error occurred while saving. Please try again.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Book Appointment Button -->
+    <div class="text-center mt-4 mb-5">
+        <a href="{{ url_for('render_appointments') }}" class="btn btn-primary btn-lg">
+            🏥 Book a Doctor's Appointment
+        </a>
+    </div>
+</div>
+
+<!-- Styles -->
+<style>
+    .analysis-content {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+    }
+    
+    .analysis-content h3 {
+        color: #1a73e8;
+        font-size: 1.5rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        border-bottom: 2px solid #1a73e8;
+        padding-bottom: 0.5rem;
+    }
+
+    .analysis-content ul {
+        list-style-type: none;
+        padding-left: 1rem;
+    }
+
+    .analysis-content li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .analysis-content li:before {
+        content: "•";
+        color: #1a73e8;
+        font-weight: bold;
+        position: absolute;
+        left: 0;
+    }
+
+    .analysis-content p {
+        margin-bottom: 1rem;
+    }
+
+    .analysis-content blockquote {
+        border-left: 4px solid #1a73e8;
+        padding-left: 1rem;
+        margin-left: 0;
+        color: #555;
+    }
+
+    .analysis-content h3:last-of-type {
+        margin-top: 2rem;
+        color: #34a853;
+        border-bottom-color: #34a853;
+    }
+
+    @media (max-width: 768px) {
+        .analysis-content {
+            font-size: 0.9rem;
+        }
+        .analysis-content h3 {
+            font-size: 1.3rem;
+        }
+    }
+
+    .btn-group {
+        display: flex;
+    }
+    .btn-group .btn {
+        flex: 1;
+    }
+</style>
+
+<!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    marked.setOptions({
+        breaks: true,
+        gfm: true
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('analyzerForm');
+        const reportUpload = document.getElementById('reportUpload');
+        const preview = document.getElementById('preview');
+        const filePreview = document.getElementById('filePreview');
+        const pdfPreview = document.getElementById('pdfPreview');
+        const englishOptions = document.getElementById('englishOptions');
+        const arabicOptions = document.getElementById('arabicOptions');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const analyzeText = document.getElementById('analyzeText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultSection = document.getElementById('resultSection');
+        const analysisResult = document.getElementById('analysisResult');
+        const saveToHistoryBtn = document.getElementById('saveToHistoryBtn');
+        const saveSuccess = document.getElementById('saveSuccess');
+        const saveError = document.getElementById('saveError');
+
+        // Language toggle
+        document.querySelectorAll('input[name="language"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === "English") {
+                    englishOptions.style.display = 'block';
+                    arabicOptions.style.display = 'none';
+                    document.getElementById('professional').checked = true;
+                } else {
+                    englishOptions.style.display = 'none';
+                    arabicOptions.style.display = 'block';
+                    document.getElementById('professionalAr').checked = true;
+                }
+            });
+        });
+
+        let currentFile = null;
+
+        // File preview
+        reportUpload.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                currentFile = this.files[0];
+                const isImage = currentFile.type.startsWith('image/');
+                
+                if (isImage) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                        pdfPreview.style.display = 'none';
+                        filePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(currentFile);
+                } else {
+                    preview.style.display = 'none';
+                    pdfPreview.style.display = 'block';
+                    filePreview.style.display = 'block';
+                }
+            }
+        });
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Reset previous results
+            resultSection.style.display = 'none';
+            saveSuccess.style.display = 'none';
+            saveError.style.display = 'none';
+            
+            if (!currentFile) {
+                alert('Please select a file.');
+                return;
+            }
+
+            // Get selected options
+            const language = document.querySelector('input[name="language"]:checked').value;
+            const reportType = document.querySelector('input[name="reportType"]:checked').value;
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', currentFile);
+            formData.append('language', language);
+            formData.append('reportType', reportType);
+
+            // Show loading state
+            analyzeText.style.display = 'none';
+            loadingSpinner.style.display = 'inline-block';
+            analyzeBtn.disabled = true;
+
+            try {
+                const response = await fetch('/analyze_report', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                // Parse markdown and display result
+                resultSection.style.display = 'block';
+                const parsedContent = marked.parse(data.analysis);
+                analysisResult.querySelector('.card-body').innerHTML = parsedContent;
+                
+                // Apply RTL direction for Arabic content
+                if (language === "Arabic") {
+                    analysisResult.querySelector('.card-body').dir = 'rtl';
+                } else {
+                    analysisResult.querySelector('.card-body').dir = 'ltr';
+                }
+                
+                // Store analysis data for later saving
+                window.lastAnalysisData = data;
+                
+                // Reset save button and messages
+                saveToHistoryBtn.disabled = false;
+                saveToHistoryBtn.style.display = 'inline-block';
+                
+                // Scroll to result
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('An error occurred during analysis. Please try again.');
+            } finally {
+                // Reset loading state
+                analyzeText.style.display = 'inline-block';
+                loadingSpinner.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        // Save to Medical History
+        saveToHistoryBtn.addEventListener('click', async function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            try {
+                const response = await fetch('/save_analysis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(window.lastAnalysisData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save analysis');
+                }
+
+                saveSuccess.style.display = 'block';
+                this.style.display = 'none';
+            } catch (error) {
+                console.error('Save error:', error);
+                saveError.style.display = 'block';
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save"></i> Try Again';
+            }
+        });
+    });
+</script>
+{% endblock %}

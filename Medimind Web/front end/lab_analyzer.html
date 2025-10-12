@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% from 'components.html' import background_shapes %}
+
+{% block title %}Lab Report Analyzer - Smart Clinic{% endblock %}
+
+{% block content %}
+{{ background_shapes() }}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Lab Report Analyzer</h2>
+        <a href="{{ url_for('render_medical_history') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Medical History
+        </a>
+    </div>
+    
+    <!-- Upload Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Upload Lab Report</h4>
+        </div>
+        <div class="card-body">
+            <form id="labAnalysisForm">
+                <div class="mb-3">
+                    <label for="reportType" class="form-label">Report Type</label>
+                    <select class="form-select" id="reportType" required>
+                        <option value="">Select report type...</option>
+                        <option value="Blood Test">Blood Test</option>
+                        <option value="Urine Test">Urine Test</option>
+                        <option value="Thyroid Test">Thyroid Test</option>
+                        <option value="Liver Function Test">Liver Function Test</option>
+                        <option value="Kidney Function Test">Kidney Function Test</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="language" class="form-label">Report Language</label>
+                    <select class="form-select" id="language" required>
+                        <option value="🇬🇧 English">🇬🇧 English</option>
+                        <option value="🇸🇦 Arabic">🇸🇦 Arabic</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="labReport" class="form-label">Lab Report File</label>
+                    <input type="file" class="form-control" id="labReport" accept=".pdf,image/*" required>
+                    <small class="text-muted">Upload a PDF or image file of your lab report</small>
+                </div>
+                
+                <div id="uploadPreview" class="mb-3 text-center d-none">
+                    <h5>Preview</h5>
+                    <div id="previewContent"></div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary" id="analyzeButton">
+                        <i class="fas fa-flask me-2"></i> Analyze Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div id="analysisResults" class="card d-none">
+        <div class="card-header">
+            <h4>Analysis Results</h4>
+        </div>
+        <div class="card-body">
+            <div id="loadingSpinner" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Analyzing your lab report...</p>
+            </div>
+            
+            <div id="analysisContent" class="d-none">
+                <!-- Results will be inserted here -->
+            </div>
+            
+            <div class="text-end mt-3">
+                <button id="saveAnalysisButton" class="btn btn-success d-none">
+                    <i class="fas fa-save me-2"></i> Save to Medical History
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentFile = null;
+let currentAnalysis = null;
+
+// Preview uploaded file
+document.getElementById('labReport').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    currentFile = file;
+    const preview = document.getElementById('uploadPreview');
+    const previewContent = document.getElementById('previewContent');
+    
+    // Show preview container
+    preview.classList.remove('d-none');
+    
+    // Read and display the file
+    if (file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewContent.innerHTML = `
+                <embed src="${e.target.result}" type="application/pdf" width="100%" height="400px">
+            `;
+        };
+        reader.readAsDataURL(file);
+    } else if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewContent.innerHTML = `
+                <img src="${e.target.result}" class="img-fluid" style="max-height: 400px;">
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Handle form submission
+document.getElementById('labAnalysisForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (!currentFile) {
+        alert('Please select a file to analyze');
+        return;
+    }
+    
+    const reportType = document.getElementById('reportType').value;
+    const language = document.getElementById('language').value;
+    
+    // Show analysis section with spinner
+    document.getElementById('analysisResults').classList.remove('d-none');
+    document.getElementById('loadingSpinner').classList.remove('d-none');
+    document.getElementById('analysisContent').classList.add('d-none');
+    document.getElementById('saveAnalysisButton').classList.add('d-none');
+    
+    try {
+        // Convert file to base64
+        const base64File = await fileToBase64(currentFile);
+        
+        // Call backend to analyze
+        const response = await fetch('/analyze_lab_report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_data: base64File,
+                report_type: reportType,
+                language: language
+            })
+        });
+        
+        if (!response.ok) throw new Error('Analysis failed');
+        
+        const data = await response.json();
+        currentAnalysis = data.analysis;
+        
+        // Update UI with results
+        const analysisContent = document.getElementById('analysisContent');
+        analysisContent.innerHTML = `
+            <div class="bg-light p-3 rounded">
+                <pre class="mb-0" style="white-space: pre-wrap;">${currentAnalysis}</pre>
+            </div>
+        `;
+        
+        // Hide spinner, show results and save button
+        document.getElementById('loadingSpinner').classList.add('d-none');
+        analysisContent.classList.remove('d-none');
+        document.getElementById('saveAnalysisButton').classList.remove('d-none');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loadingSpinner').classList.add('d-none');
+        document.getElementById('analysisContent').classList.remove('d-none');
+        document.getElementById('analysisContent').innerHTML = `
+            <div class="alert alert-danger">
+                Error analyzing report: ${error.message}
+            </div>
+        `;
+    }
+});
+
+// Handle saving analysis
+document.getElementById('saveAnalysisButton').addEventListener('click', async function() {
+    if (!currentAnalysis || !currentFile) {
+        alert('No analysis to save');
+        return;
+    }
+    
+    try {
+        const base64File = await fileToBase64(currentFile);
+        const reportType = document.getElementById('reportType').value;
+        const language = document.getElementById('language').value;
+        
+        const response = await fetch('/save_analysis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                analysis: currentAnalysis,
+                file_data: base64File,
+                reportType: reportType,
+                language: language
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            alert('Analysis saved successfully!');
+            window.location.href = '{{ url_for("render_medical_history") }}';
+        } else {
+            throw new Error(data.error || 'Failed to save analysis');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error saving analysis: ' + error.message);
+    }
+});
+
+// Helper function to convert file to base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+</script>
+{% endblock %}
